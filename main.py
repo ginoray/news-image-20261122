@@ -12,7 +12,6 @@ import base64
 import os
 import struct
 import sys
-import tempfile
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 MAX_IMAGE_BYTES = 1_048_576  # 1 MiB competition cap
@@ -55,19 +54,10 @@ def main() -> int:
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, "entry.png")
 
-    # Write atomically: fill a temp file in the same directory, then rename,
-    # so a reader never sees a half-written entry.png.
-    fd, tmp_path = tempfile.mkstemp(dir=out_dir, prefix=".entry-", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(data)
-        os.replace(tmp_path, target)
-    except BaseException:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
+    # Write the poster directly: entry.png is the only file the output
+    # folder ever holds, with the normal default file mode.
+    with open(target, "wb") as handle:
+        handle.write(data)
     return 0
 
 
